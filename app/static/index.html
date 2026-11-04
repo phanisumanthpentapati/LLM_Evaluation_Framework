@@ -1,0 +1,1228 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>EvalAI - LLM Evaluation Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f3f6fc;
+    color: #172033;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 235px;
+    background: #111827;
+    color: white;
+    padding: 25px 17px;
+    flex-shrink: 0;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 22px;
+    font-weight: 750;
+    margin-bottom: 45px;
+}
+
+.brand-icon {
+    background: #2563eb;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.nav-title {
+    color: #8190a5;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin: 22px 12px 12px;
+}
+
+.nav-item {
+    padding: 13px;
+    margin-bottom: 7px;
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.nav-item.active {
+    background: #1e40af;
+    color: white;
+}
+
+.sidebar-footer {
+    margin-top: 55px;
+    padding: 13px;
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.main {
+    flex: 1;
+    min-width: 0;
+    padding: 30px;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+}
+
+.topbar h1 {
+    font-size: 27px;
+}
+
+.subtitle {
+    color: #8491a5;
+    font-size: 14px;
+    margin-top: 7px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.refresh-btn {
+    background: white;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+}
+
+#message {
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 17px;
+    margin-bottom: 22px;
+}
+
+.card, .panel, .decision-panel {
+    background: white;
+    border: 1px solid #e9edf4;
+    border-radius: 13px;
+    padding: 21px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .035);
+}
+
+.card-label {
+    color: #778399;
+    font-size: 13px;
+}
+
+.card-value {
+    font-size: 30px;
+    font-weight: 750;
+    margin: 14px 0 7px;
+}
+
+.card-note {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.blue { color: #2563eb; }
+.green { color: #059669; }
+.red { color: #dc2626; }
+.purple { color: #7c3aed; }
+
+.middle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.panel h3, .decision-panel h3 {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.chart-box {
+    height: 270px;
+    position: relative;
+}
+
+.performance {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.donut-box {
+    width: 175px;
+    height: 175px;
+}
+
+.legend {
+    display: grid;
+    gap: 17px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.metric-row {
+    margin-bottom: 19px;
+}
+
+.metric-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.metric-head span:last-child {
+    font-weight: 700;
+}
+
+.progress {
+    height: 8px;
+    background: #edf0f5;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: #059669;
+}
+
+.progress-fill.warning {
+    background: #d97706;
+}
+
+.section {
+    margin-bottom: 22px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 650px;
+    font-size: 13px;
+}
+
+th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+}
+
+th, td {
+    text-align: left;
+    padding: 14px 12px;
+    border-bottom: 1px solid #edf0f5;
+    vertical-align: top;
+}
+
+td {
+    color: #475569;
+}
+
+.status, .decision-status {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.status-pass, .decision-accept {
+    color: #047857;
+    background: #d1fae5;
+}
+
+.status-fail, .decision-reject {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+.decision-review {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.decision-panel {
+    margin-bottom: 22px;
+}
+
+.decision-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.decision-header h3 {
+    margin-bottom: 0;
+}
+
+.decision-status {
+    font-size: 14px;
+    padding: 10px 17px;
+}
+
+.decision-reason {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 14px;
+}
+
+.decision-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 13px;
+    margin-top: 20px;
+}
+
+.decision-count {
+    background: #f8fafc;
+    border: 1px solid #edf0f5;
+    border-radius: 10px;
+    padding: 16px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.decision-count strong {
+    display: block;
+    font-size: 25px;
+    margin-top: 8px;
+    color: #172033;
+}
+
+.answer-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    padding: 15px;
+    margin-top: 12px;
+    line-height: 1.7;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.answer-label {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 650;
+    margin-top: 20px;
+}
+
+.case-selector {
+    padding: 9px;
+    border: 1px solid #dbe2ea;
+    border-radius: 7px;
+    min-width: 160px;
+    margin-top: 10px;
+}
+
+.alert {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 22px;
+}
+
+.alert h3 {
+    color: #9a3412;
+    margin-bottom: 7px;
+    font-size: 14px;
+}
+
+.alert p {
+    color: #9a3412;
+    font-size: 13px;
+}
+
+.empty {
+    color: #94a3b8;
+    padding: 20px 0;
+    font-size: 13px;
+}
+
+.footer {
+    text-align: center;
+    padding: 25px;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+@media(max-width: 1000px) {
+    .sidebar {
+        width: 190px;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media(max-width: 750px) {
+    .layout {
+        display: block;
+    }
+
+    .sidebar {
+        width: 100%;
+        padding: 15px;
+    }
+
+    .brand {
+        margin-bottom: 12px;
+    }
+
+    .nav-title, .nav-item, .sidebar-footer {
+        display: none;
+    }
+
+    .main {
+        padding: 17px;
+    }
+
+    .middle-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media(max-width: 500px) {
+    .cards, .decision-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+    <div class="brand">
+        <span class="brand-icon">✦</span>
+        EvalAI
+    </div>
+
+    <div class="nav-title">OVERVIEW</div>
+    <div class="nav-item active">▦ &nbsp; Dashboard</div>
+    <div class="nav-item">◈ &nbsp; Evaluations</div>
+    <div class="nav-item">▤ &nbsp; Test Datasets</div>
+    <div class="nav-item">◉ &nbsp; Quality Metrics</div>
+
+    <div class="nav-title">MONITORING</div>
+    <div class="nav-item">⚑ &nbsp; Failed Tests</div>
+    <div class="nav-item">▧ &nbsp; Reports</div>
+
+    <div class="sidebar-footer">
+        LLM Evaluation Framework<br>
+        Version 1.0.0<br>
+        Powered by FastAPI
+    </div>
+
+</aside>
+
+<main class="main">
+
+<header class="topbar">
+
+    <div>
+        <h1>Evaluation Dashboard</h1>
+        <p class="subtitle">
+            Monitor AI quality, reliability and performance
+        </p>
+    </div>
+
+    <div class="actions">
+        <button class="refresh-btn" onclick="runEvaluation()">
+            ↻ Refresh
+        </button>
+
+        <button id="runButton" onclick="runEvaluation()">
+            ▶ Run Evaluation
+        </button>
+    </div>
+
+</header>
+
+<p id="message">Click Run Evaluation to load results.</p>
+
+<section class="cards">
+
+    <div class="card">
+        <div class="card-label">Total Test Cases</div>
+        <div class="card-value blue" id="total">-</div>
+        <div class="card-note">Evaluation dataset</div>
+    </div>
+
+    <div class="card">
+        <div class="card-label">Passed Tests</div>
+        <div class="card-value green" id="passed">-</div>
+        <div class="card-note">All seven checks passed</div>
+    </div>
+
+    <div class="card">
+        <div class="card-label">Failed Tests</div>
+        <div class="card-value red" id="failed">-</div>
+        <div class="card-note">Require investigation</div>
+    </div>
+
+    <div class="card">
+        <div class="card-label">Overall Pass Rate</div>
+        <div class="card-value purple" id="passRate">-</div>
+        <div class="card-note">Across all test cases</div>
+    </div>
+
+</section>
+
+<div id="alertBox" class="alert" hidden>
+    <h3>⚠ Quality issues detected</h3>
+    <p id="alertText"></p>
+</div>
+
+<section class="middle-grid">
+
+    <div class="panel">
+        <h3>Test Execution Overview</h3>
+
+        <div class="performance">
+
+            <div class="donut-box">
+                <canvas id="donutChart"></canvas>
+            </div>
+
+            <div class="legend">
+
+                <div class="legend-item">
+                    <span class="dot" style="background:#059669"></span>
+                    Passed: <strong id="legendPassed">-</strong>
+                </div>
+
+                <div class="legend-item">
+                    <span class="dot" style="background:#dc2626"></span>
+                    Failed: <strong id="legendFailed">-</strong>
+                </div>
+
+                <div class="legend-item">
+                    <span class="dot" style="background:#cbd5e1"></span>
+                    Total: <strong id="legendTotal">-</strong>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Metric Performance</h3>
+
+        <div class="chart-box">
+            <canvas id="metricChart"></canvas>
+        </div>
+    </div>
+
+</section>
+
+<section class="panel section">
+
+    <h3>Detailed Quality Metrics</h3>
+
+    <div id="metricSummary">
+        <p class="empty">No evaluation data available.</p>
+    </div>
+
+</section>
+
+<!-- COMPANY DECISION -->
+
+<section class="decision-panel">
+
+    <div class="decision-header">
+        <h3>Final AI Answer Quality Decision</h3>
+
+        <span id="companyDecision"
+              class="decision-status decision-review">
+            WAITING
+        </span>
+    </div>
+
+    <p class="decision-reason" id="companyReason">
+        Run an evaluation to obtain the company quality decision.
+    </p>
+
+    <div class="decision-grid">
+
+        <div class="decision-count">
+            Accepted Answers
+            <strong id="acceptedCount">-</strong>
+        </div>
+
+        <div class="decision-count">
+            Answers for Review
+            <strong id="reviewCount">-</strong>
+        </div>
+
+        <div class="decision-count">
+            Rejected Answers
+            <strong id="rejectedCount">-</strong>
+        </div>
+
+    </div>
+
+    <div class="answer-label">Inspect an individual AI answer</div>
+
+    <select id="caseSelector"
+            class="case-selector"
+            onchange="showSelectedAnswer()">
+        <option value="">No evaluation results</option>
+    </select>
+
+    <div class="answer-label">Question</div>
+    <div class="answer-box" id="generatedQuestion">
+        No question available.
+    </div>
+
+    <div class="answer-label">Generated AI Answer</div>
+    <div class="answer-box" id="generatedAnswer">
+        No answer available yet.
+    </div>
+
+    <div class="answer-label">Expected Answer / Reference</div>
+    <div class="answer-box" id="expectedAnswer">
+        No reference available.
+    </div>
+
+    <div class="answer-label">Decision Explanation</div>
+    <div class="answer-box" id="answerReason">
+        No decision available.
+    </div>
+
+</section>
+
+<!-- INDIVIDUAL DECISIONS -->
+
+<section class="panel section">
+
+    <h3>Company Decision by Test Case</h3>
+
+    <div class="table-wrapper">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Test Case</th>
+                    <th>Question</th>
+                    <th>AI Decision</th>
+                    <th>Reason</th>
+                </tr>
+            </thead>
+
+            <tbody id="decisionCases">
+                <tr>
+                    <td colspan="4">No evaluation results loaded.</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+</section>
+
+<!-- FAILED CASES -->
+
+<section class="panel section">
+
+    <h3>Failed Test Cases</h3>
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Test Case ID</th>
+                    <th>Question</th>
+                    <th>Failed Metrics</th>
+                    <th>Decision</th>
+                </tr>
+            </thead>
+
+            <tbody id="failedCases">
+                <tr>
+                    <td colspan="4">No results loaded.</td>
+                </tr>
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+<div class="footer">
+    EvalAI · LLM Evaluation Framework · Automated Quality Monitoring
+</div>
+
+</main>
+</div>
+
+<script>
+
+let donutChart = null;
+let metricChart = null;
+let currentCases = [];
+
+
+async function runEvaluation() {
+
+    const button = document.getElementById("runButton");
+
+    button.disabled = true;
+    button.textContent = "Evaluating...";
+
+    setMessage("Running evaluation for all test cases...");
+
+    try {
+
+        const response = await fetch("/evaluation/analyze", {
+            method: "POST"
+        });
+
+        if (!response.ok) {
+            throw new Error("API error: " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (!data.analysis) {
+            throw new Error("Analysis data missing from API response.");
+        }
+
+        updateDashboard(data.analysis);
+
+        setMessage(data.message || "Evaluation completed successfully.");
+
+    } catch (error) {
+
+        setMessage("Error: " + error.message);
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "▶ Run Evaluation";
+
+    }
+}
+
+
+function setMessage(message) {
+    document.getElementById("message").textContent = message;
+}
+
+
+function updateDashboard(data) {
+
+    const total = Number(data.total_test_cases) || 0;
+    const passed = Number(data.passed_test_cases) || 0;
+    const failed = Number(data.failed_test_cases) || 0;
+
+    document.getElementById("total").textContent = total;
+    document.getElementById("passed").textContent = passed;
+    document.getElementById("failed").textContent = failed;
+
+    document.getElementById("passRate").textContent =
+        Number(data.overall_pass_rate || 0).toFixed(2) + "%";
+
+    document.getElementById("legendPassed").textContent = passed;
+    document.getElementById("legendFailed").textContent = failed;
+    document.getElementById("legendTotal").textContent = total;
+
+    updateDonutChart(passed, failed);
+    updateMetricSummary(data.metric_summary || {});
+    updateMetricChart(data.metric_summary || {});
+    updateCompanyDecision(data);
+    updateFailedCases(data.failed_case_details || []);
+}
+
+
+function updateDonutChart(passed, failed) {
+
+    const ctx = document.getElementById("donutChart");
+
+    if (donutChart) {
+        donutChart.destroy();
+    }
+
+    donutChart = new Chart(ctx, {
+
+        type: "doughnut",
+
+        data: {
+            labels: ["Passed", "Failed"],
+
+            datasets: [{
+                data: [passed, failed],
+                backgroundColor: ["#059669", "#dc2626"],
+                borderWidth: 0,
+                hoverOffset: 5
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: "73%",
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+
+function updateMetricSummary(summary) {
+
+    const container = document.getElementById("metricSummary");
+
+    container.innerHTML = "";
+
+    const entries = Object.entries(summary);
+
+    if (entries.length === 0) {
+        container.textContent = "No metric results available.";
+        return;
+    }
+
+    entries.forEach(([name, values]) => {
+
+        const rate = Math.max(
+            0,
+            Math.min(100, Number(values.pass_rate) || 0)
+        );
+
+        const row = document.createElement("div");
+        row.className = "metric-row";
+
+        const heading = document.createElement("div");
+        heading.className = "metric-head";
+
+        const title = document.createElement("span");
+        title.textContent = name;
+
+        const score = document.createElement("span");
+        score.textContent = rate.toFixed(2) + "%";
+
+        heading.appendChild(title);
+        heading.appendChild(score);
+
+        const progress = document.createElement("div");
+        progress.className = "progress";
+
+        const fill = document.createElement("div");
+        fill.className = "progress-fill";
+
+        if (rate < 90) {
+            fill.classList.add("warning");
+        }
+
+        fill.style.width = rate + "%";
+
+        progress.appendChild(fill);
+
+        const detail = document.createElement("div");
+        detail.className = "card-note";
+        detail.style.marginTop = "6px";
+
+        detail.textContent =
+            values.passed + " passed · " +
+            values.failed + " failed · " +
+            values.total + " evaluated";
+
+        row.appendChild(heading);
+        row.appendChild(progress);
+        row.appendChild(detail);
+
+        container.appendChild(row);
+    });
+}
+
+
+function updateMetricChart(summary) {
+
+    const labels = Object.keys(summary);
+
+    const values = labels.map(
+        name => Number(summary[name].pass_rate) || 0
+    );
+
+    const ctx = document.getElementById("metricChart");
+
+    if (metricChart) {
+        metricChart.destroy();
+    }
+
+    metricChart = new Chart(ctx, {
+
+        type: "bar",
+
+        data: {
+            labels: labels,
+
+            datasets: [{
+                label: "Pass Rate (%)",
+                data: values,
+
+                backgroundColor: values.map(
+                    value => value < 90 ? "#d97706" : "#2563eb"
+                ),
+
+                borderRadius: 6,
+                barThickness: 23
+            }]
+        },
+
+        options: {
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+
+                    ticks: {
+                        callback: value => value + "%"
+                    }
+                },
+
+                x: {
+                    ticks: {
+                        maxRotation: 35,
+                        minRotation: 20
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+// COMPANY DECISION
+
+function updateCompanyDecision(data) {
+
+    const decision = data.company_decision || "REVIEW";
+
+    const decisionElement =
+        document.getElementById("companyDecision");
+
+    decisionElement.textContent = decision;
+
+    decisionElement.className = "decision-status";
+
+    if (decision === "ACCEPT") {
+        decisionElement.classList.add("decision-accept");
+
+    } else if (decision === "REJECT") {
+        decisionElement.classList.add("decision-reject");
+
+    } else {
+        decisionElement.classList.add("decision-review");
+    }
+
+    document.getElementById("companyReason").textContent =
+        data.company_decision_reason || "No reason available.";
+
+    document.getElementById("acceptedCount").textContent =
+        data.accepted_cases ?? 0;
+
+    document.getElementById("reviewCount").textContent =
+        data.review_cases ?? 0;
+
+    document.getElementById("rejectedCount").textContent =
+        data.rejected_cases ?? 0;
+
+    currentCases = data.case_decisions || [];
+
+    updateCaseSelector();
+    updateDecisionTable(currentCases);
+
+    if (currentCases.length > 0) {
+        showSelectedAnswer();
+    }
+}
+
+
+function updateCaseSelector() {
+
+    const selector = document.getElementById("caseSelector");
+
+    selector.innerHTML = "";
+
+    if (currentCases.length === 0) {
+
+        const option = document.createElement("option");
+        option.textContent = "No evaluation results";
+        option.value = "";
+
+        selector.appendChild(option);
+
+        return;
+    }
+
+    currentCases.forEach((item, index) => {
+
+        const option = document.createElement("option");
+
+        option.value = index;
+
+        option.textContent =
+            item.test_case_id + " - " + item.decision;
+
+        selector.appendChild(option);
+    });
+}
+
+
+function showSelectedAnswer() {
+
+    const selector = document.getElementById("caseSelector");
+
+    const index = Number(selector.value);
+
+    const item = currentCases[index];
+
+    if (!item) {
+        return;
+    }
+
+    document.getElementById("generatedQuestion").textContent =
+        item.question || "Not available";
+
+    document.getElementById("generatedAnswer").textContent =
+        item.actual_output || "Not available";
+
+    document.getElementById("expectedAnswer").textContent =
+        item.expected_answer || "Not available";
+
+    document.getElementById("answerReason").textContent =
+        item.reason || "No decision reason available.";
+}
+
+
+function updateDecisionTable(cases) {
+
+    const tbody = document.getElementById("decisionCases");
+
+    tbody.innerHTML = "";
+
+    if (cases.length === 0) {
+
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 4;
+        cell.textContent = "No evaluation results available.";
+
+        row.appendChild(cell);
+        tbody.appendChild(row);
+
+        return;
+    }
+
+    cases.forEach(item => {
+
+        const row = document.createElement("tr");
+
+        const id = document.createElement("td");
+        id.textContent = item.test_case_id;
+
+        const question = document.createElement("td");
+        question.textContent = item.question;
+
+        const decisionCell = document.createElement("td");
+
+        const badge = document.createElement("span");
+        badge.className = "decision-status";
+
+        badge.textContent = item.decision;
+
+        if (item.decision === "ACCEPT") {
+            badge.classList.add("decision-accept");
+
+        } else if (item.decision === "REJECT") {
+            badge.classList.add("decision-reject");
+
+        } else {
+            badge.classList.add("decision-review");
+        }
+
+        decisionCell.appendChild(badge);
+
+        const reason = document.createElement("td");
+        reason.textContent = item.reason;
+
+        row.appendChild(id);
+        row.appendChild(question);
+        row.appendChild(decisionCell);
+        row.appendChild(reason);
+
+        tbody.appendChild(row);
+    });
+}
+
+
+// FAILED CASES
+
+function updateFailedCases(failedCases) {
+
+    const tbody = document.getElementById("failedCases");
+
+    tbody.innerHTML = "";
+
+    const alertBox = document.getElementById("alertBox");
+
+    if (failedCases.length === 0) {
+
+        alertBox.hidden = true;
+
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 4;
+        cell.textContent = "All test cases passed.";
+
+        row.appendChild(cell);
+        tbody.appendChild(row);
+
+        return;
+    }
+
+    alertBox.hidden = false;
+
+    document.getElementById("alertText").textContent =
+        failedCases.length +
+        " test case(s) failed. Review the details below.";
+
+    failedCases.forEach(test => {
+
+        const row = document.createElement("tr");
+
+        const idCell = document.createElement("td");
+        idCell.textContent = test.test_case_id;
+
+        const questionCell = document.createElement("td");
+        questionCell.textContent = test.question;
+
+        const metricsCell = document.createElement("td");
+
+        metricsCell.textContent = (test.failed_metrics || [])
+            .map(metric => metric.metric + ": " + metric.reason)
+            .join(" | ");
+
+        const decisionCell = document.createElement("td");
+
+        const badge = document.createElement("span");
+        badge.className = "status status-fail";
+
+        badge.textContent =
+            test.company_decision || "REVIEW";
+
+        decisionCell.appendChild(badge);
+
+        row.appendChild(idCell);
+        row.appendChild(questionCell);
+        row.appendChild(metricsCell);
+        row.appendChild(decisionCell);
+
+        tbody.appendChild(row);
+    });
+}
+
+</script>
+
+</body>
+</html>
